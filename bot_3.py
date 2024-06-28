@@ -107,7 +107,7 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     return ConversationHandler.END
 
-async def delete_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -121,12 +121,34 @@ async def delete_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             await update.message.reply_text("Your information has been deleted from the database.")
         else:
             await update.message.reply_text("You are not registered in the database.")
+            
+async def me_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    with sqlite3.connect('players.db') as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
+        user_data = c.fetchone()
+        
+        if user_data:
+            _, _, nickname, lane, sublane, rank, notifications = user_data
+            message = f"Your profile:\n\n" \
+                      f"Nickname: {nickname}\n" \
+                      f"Lane: {lane}\n" \
+                      f"Sublane: {sublane}\n" \
+                      f"Rank: {rank}\n" \
+                      f"Notifications: {'On' if notifications else 'Off'}"
+            await update.message.reply_text(message)
+        else:
+            await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
 
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("help", help_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("delete", delete_user, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("delete", delete_command, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("me", me_command, filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
         entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
