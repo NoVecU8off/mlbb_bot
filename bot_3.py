@@ -69,12 +69,6 @@ async def sublane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['rank'] = update.message.text
-    await update.message.reply_text("Do you want to receive notifications? (yes/no)")
-    return 5
-
-async def notifications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    notifications = update.message.text.lower()
-    context.user_data['notifications'] = 1 if notifications == 'yes' else 0
     
     user = update.effective_user
     user_id = user.id
@@ -83,8 +77,8 @@ async def notifications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     # Сохранение данных в базу
     with sqlite3.connect('players.db') as conn:
         c = conn.cursor()
-        c.execute('INSERT INTO players (id, username, nickname, lane, sublane, rank, notifications) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-                  (user_id, username, context.user_data['nickname'], context.user_data['lane'], context.user_data['sublane'], context.user_data['rank'], context.user_data['notifications']))
+        c.execute('INSERT INTO players (id, username, nickname, lane, sublane, rank) VALUES (?, ?, ?, ?, ?, ?)', 
+                  (user_id, username, context.user_data['nickname'], context.user_data['lane'], context.user_data['sublane'], context.user_data['rank']))
         conn.commit()
 
     await update.message.reply_text("You have been registered successfully!")
@@ -102,7 +96,6 @@ def main() -> None:
             2: [CallbackQueryHandler(lane)],
             3: [CallbackQueryHandler(sublane)],
             4: [MessageHandler(filters.TEXT & ~filters.COMMAND, rank)],
-            5: [MessageHandler(filters.TEXT & ~filters.COMMAND, notifications)],
         },
         fallbacks=[]
     )
