@@ -1,6 +1,7 @@
 import os
 import logging
 import sqlite3
+from functools import wraps
 from typing import Optional, Tuple
 from dotenv import load_dotenv
 from telegram import Chat, ChatMember, ChatMemberUpdated, Update, InlineKeyboardMarkup, InlineKeyboardButton
@@ -15,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 TOKEN = os.getenv('TG_BOT_TOKEN')
+CREATOR_ID = os.getenv('TG_CREATOR_ID')
+CHAT_ID = os.getenv('TG_CHAT_ID')
 
 conn = sqlite3.connect('players.db')
 c = conn.cursor()
@@ -28,6 +31,20 @@ c.execute('''CREATE TABLE IF NOT EXISTS players (
     notifications INTEGER DEFAULT 1
 )''')
 conn.commit()
+
+def creator_only(func):
+    @wraps(func)
+    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        user_id = update.effective_user.id
+        if user_id != int(CREATOR_ID):
+            await update.message.reply_text(f"Sorry, this command is only available to the bot creator, creator's id is: {CREATOR_ID}, your id is: {user_id}.")
+            return
+        return await func(update, context, *args, **kwargs)
+    return wrapped
+
+async def get_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    await update.message.reply_text(f"Your Telegram ID is: {user_id}")
 
 def extract_status_change(chat_member_update: ChatMemberUpdated) -> Optional[Tuple[bool, bool]]:
     status_change = chat_member_update.difference().get("status")
@@ -118,15 +135,12 @@ async def greet_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def start_private_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_name = update.effective_user.full_name
     chat = update.effective_chat
-    if chat.type != Chat.PRIVATE or chat.id in context.bot_data.get("user_ids", set()):
+    if chat.type != Chat.PRIVATE:
         return
 
     logger.info("%s started a private chat with the bot", user_name)
     context.bot_data.setdefault("user_ids", set()).add(chat.id)
-
-    await update.effective_message.reply_text(
-        f"Welcome {user_name}. Use /show_chats to see what chats I'm in."
-    )
+    await update.message.reply_text(f"Welcome {user_name}. Use /help to see what I'm capable of.")
     
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Use /start to test this bot.")    
@@ -284,14 +298,15 @@ def main() -> None:
     application.add_handler(ChatMemberHandler(greet_chat_members, ChatMemberHandler.CHAT_MEMBER))
     application.add_handler(ChatMemberHandler(track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
     application.add_handler(CommandHandler("show_chats", show_chats))
-    application.add_handler(CommandHandler("chat_id", chat_id))
-    application.add_handler(MessageHandler(filters.ALL, start_private_chat))
+    application.add_handler(CommandHandler("this_chat_id", chat_id))
+    application.add_handler(CommandHandler("start", start_private_chat, filters.ChatType.PRIVATE))
     
     application.add_handler(CommandHandler("help", help_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("delete", delete_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("me", me_command, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("delete_me", delete_command, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("my_info", me_command, filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("mute", mute_command, filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("unmute", unmute_comand, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("my_id", get_my_id,  filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
         entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
