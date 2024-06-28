@@ -143,12 +143,48 @@ async def me_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
 
+async def mute_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    with sqlite3.connect('players.db') as conn:
+        c = conn.cursor()
+        
+        c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
+        existing_user = c.fetchone()
+        
+        if existing_user:
+            c.execute('UPDATE players SET notifications = 0 WHERE id = ?', (user_id,))
+            conn.commit()
+            await update.message.reply_text("Notifications have been turned off.")
+        else:
+            await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
+
+async def unmute_comand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    with sqlite3.connect('players.db') as conn:
+        c = conn.cursor()
+        
+        c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
+        existing_user = c.fetchone()
+        
+        if existing_user:
+            c.execute('UPDATE players SET notifications = 1 WHERE id = ?', (user_id,))
+            conn.commit()
+            await update.message.reply_text("Notifications have been turned on.")
+        else:
+            await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
+
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("help", help_command, filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("delete", delete_command, filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("me", me_command, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("mute", mute_command, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("unmute", unmute_comand, filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
         entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
