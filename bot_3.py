@@ -64,25 +64,33 @@ async def sublane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await query.answer()
     context.user_data['sublane'] = query.data
     await query.edit_message_text(text=f"Selected sublane: {query.data}")
-
-    await query.message.reply_text("Enter your rank:")
+    keyboard = [
+        [InlineKeyboardButton("Warrior", callback_data="Warrior"), InlineKeyboardButton("Elite", callback_data="Elite")],
+        [InlineKeyboardButton("Master", callback_data="Master"), InlineKeyboardButton("Grandmaster", callback_data="Grandmaster")],
+        [InlineKeyboardButton("Epic", callback_data="Epic"), InlineKeyboardButton("Legend", callback_data="Legend")],
+        [InlineKeyboardButton("Mythic", callback_data="Mythic")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.reply_text("Choose your rank:", reply_markup=reply_markup)
     return 4
 
 async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    context.user_data['rank'] = update.message.text
+    query = update.callback_query
+    await query.answer()
+    context.user_data['rank'] = query.data
+    await query.edit_message_text(text=f"Selected rank: {query.data}")
     
     user = update.effective_user
     user_id = user.id
     username = user.username
 
-    # Сохранение данных в базу
     with sqlite3.connect('players.db') as conn:
         c = conn.cursor()
         c.execute('INSERT INTO players (id, username, nickname, lane, sublane, rank) VALUES (?, ?, ?, ?, ?, ?)', 
                   (user_id, username, context.user_data['nickname'], context.user_data['lane'], context.user_data['sublane'], context.user_data['rank']))
         conn.commit()
 
-    await update.message.reply_text("You have been registered successfully!")
+    await query.message.reply_text("You have been registered successfully!")
     return ConversationHandler.END
 
 def main() -> None:
@@ -96,7 +104,7 @@ def main() -> None:
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, nickname)],
             2: [CallbackQueryHandler(lane)],
             3: [CallbackQueryHandler(sublane)],
-            4: [MessageHandler(filters.TEXT & ~filters.COMMAND, rank)],
+            4: [CallbackQueryHandler(rank)],
         },
         fallbacks=[]
     )
