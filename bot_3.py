@@ -107,10 +107,26 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     return ConversationHandler.END
 
+async def delete_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    with sqlite3.connect('players.db') as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
+        existing_user = c.fetchone()
+        if existing_user:
+            c.execute('DELETE FROM players WHERE id = ?', (user_id,))
+            conn.commit()
+            await update.message.reply_text("Your information has been deleted from the database.")
+        else:
+            await update.message.reply_text("You are not registered in the database.")
+
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
     application.add_handler(CommandHandler("help", help_command, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("delete", delete_user, filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
         entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
