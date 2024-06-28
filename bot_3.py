@@ -50,9 +50,10 @@ async def lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await query.answer()
     context.user_data['lane'] = query.data
     await query.edit_message_text(text=f"Selected lane: {query.data}")
-
     keyboard = [
-        [InlineKeyboardButton("Main", callback_data="Main"), InlineKeyboardButton("Secondary", callback_data="Secondary")]
+        [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
+        [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
+        [InlineKeyboardButton("Support", callback_data="Support")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("Choose your sublane:", reply_markup=reply_markup)
