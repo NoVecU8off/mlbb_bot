@@ -94,10 +94,10 @@ async def notifications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
-    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("help", help_command, filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
-        entry_points=[CommandHandler('register', register)],
+        entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, nickname)],
             2: [MessageHandler(filters.TEXT & ~filters.COMMAND, username)],
