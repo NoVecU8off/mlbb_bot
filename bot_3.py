@@ -18,8 +18,8 @@ conn = sqlite3.connect('players.db')
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY,
-    nickname TEXT,
     username TEXT,
+    nickname TEXT,
     lane TEXT,
     sublane TEXT,
     rank TEXT,
@@ -36,11 +36,6 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def nickname(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['nickname'] = update.message.text
-    await update.message.reply_text("Enter your username:")
-    return 2
-
-async def username(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    context.user_data['username'] = update.message.text
     keyboard = [
         [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
         [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
@@ -48,7 +43,7 @@ async def username(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Choose your lane:", reply_markup=reply_markup)
-    return 3
+    return 2
 
 async def lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -61,7 +56,7 @@ async def lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.message.reply_text("Choose your sublane:", reply_markup=reply_markup)
-    return 4
+    return 3
 
 async def sublane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -70,22 +65,26 @@ async def sublane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await query.edit_message_text(text=f"Selected sublane: {query.data}")
 
     await query.message.reply_text("Enter your rank:")
-    return 5
+    return 4
 
 async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['rank'] = update.message.text
     await update.message.reply_text("Do you want to receive notifications? (yes/no)")
-    return 6
+    return 5
 
 async def notifications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     notifications = update.message.text.lower()
     context.user_data['notifications'] = 1 if notifications == 'yes' else 0
+    
+    user = update.effective_user
+    user_id = user.id
+    username = user.username
 
     # Сохранение данных в базу
     with sqlite3.connect('players.db') as conn:
         c = conn.cursor()
-        c.execute('INSERT INTO players (nickname, username, lane, sublane, rank, notifications) VALUES (?, ?, ?, ?, ?, ?)', 
-                  (context.user_data['nickname'], context.user_data['username'], context.user_data['lane'], context.user_data['sublane'], context.user_data['rank'], context.user_data['notifications']))
+        c.execute('INSERT INTO players (id, username, nickname, lane, sublane, rank, notifications) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                  (user_id, username, context.user_data['nickname'], context.user_data['lane'], context.user_data['sublane'], context.user_data['rank'], context.user_data['notifications']))
         conn.commit()
 
     await update.message.reply_text("You have been registered successfully!")
@@ -100,11 +99,10 @@ def main() -> None:
         entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, nickname)],
-            2: [MessageHandler(filters.TEXT & ~filters.COMMAND, username)],
-            3: [CallbackQueryHandler(lane)],
-            4: [CallbackQueryHandler(sublane)],
-            5: [MessageHandler(filters.TEXT & ~filters.COMMAND, rank)],
-            6: [MessageHandler(filters.TEXT & ~filters.COMMAND, notifications)],
+            2: [CallbackQueryHandler(lane)],
+            3: [CallbackQueryHandler(sublane)],
+            4: [MessageHandler(filters.TEXT & ~filters.COMMAND, rank)],
+            5: [MessageHandler(filters.TEXT & ~filters.COMMAND, notifications)],
         },
         fallbacks=[]
     )
