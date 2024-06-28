@@ -86,11 +86,25 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     with sqlite3.connect('players.db') as conn:
         c = conn.cursor()
-        c.execute('INSERT INTO players (id, username, nickname, lane, sublane, rank) VALUES (?, ?, ?, ?, ?, ?)', 
-                  (user_id, username, context.user_data['nickname'], context.user_data['lane'], context.user_data['sublane'], context.user_data['rank']))
+        c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
+        existing_user = c.fetchone()
+        
+        if existing_user:
+            c.execute('''UPDATE players 
+                         SET username = ?, nickname = ?, lane = ?, sublane = ?, rank = ? 
+                         WHERE id = ?''', 
+                      (username, context.user_data['nickname'], context.user_data['lane'], 
+                       context.user_data['sublane'], context.user_data['rank'], user_id))
+            await query.message.reply_text("Your information has been updated successfully!")
+        else:
+            c.execute('''INSERT INTO players (id, username, nickname, lane, sublane, rank) 
+                         VALUES (?, ?, ?, ?, ?, ?)''', 
+                      (user_id, username, context.user_data['nickname'], context.user_data['lane'], 
+                       context.user_data['sublane'], context.user_data['rank']))
+            await query.message.reply_text("You have been registered successfully!")
+        
         conn.commit()
 
-    await query.message.reply_text("You have been registered successfully!")
     return ConversationHandler.END
 
 def main() -> None:
