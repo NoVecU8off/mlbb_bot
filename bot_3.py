@@ -84,7 +84,7 @@ def extract_status_change(chat_member_update: ChatMemberUpdated) -> Optional[Tup
 
     return was_member, is_member
 
-async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def track(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     result = extract_status_change(update.my_chat_member)
     if result is None:
         return
@@ -129,7 +129,7 @@ async def chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     await update.effective_message.reply_text(text)
     
-async def greet_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def greet(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     result = extract_status_change(update.chat_member)
     if result is None:
         return
@@ -348,8 +348,8 @@ async def select_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
-    application.add_handler(ChatMemberHandler(greet_chat_members, ChatMemberHandler.CHAT_MEMBER))
-    application.add_handler(ChatMemberHandler(track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
+    application.add_handler(ChatMemberHandler(greet, ChatMemberHandler.CHAT_MEMBER))
+    application.add_handler(ChatMemberHandler(track, ChatMemberHandler.MY_CHAT_MEMBER))
     
     application.add_handler(CommandHandler("chats", chats))
     application.add_handler(CommandHandler("cid", cid))
