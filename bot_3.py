@@ -291,6 +291,75 @@ async def unmute_comand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             await update.message.reply_text("Notifications have been turned on.")
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
+            
+async def find_team_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    user_id = user.id
+
+    with sqlite3.connect('players.db') as conn:
+        c = conn.cursor()
+        
+        c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
+        user_data = c.fetchone()
+        
+        if user_data:
+            id, username, nickname, lane, sublane, rank, _ = user_data
+            message = f"@{username} wants to join a team!\n\n" \
+                      f"Nickname: {nickname}\n" \
+                      f"Lane: {lane}\n" \
+                      f"Sublane: {sublane}\n" \
+                      f"Rank: {rank}"
+            await context.bot.send_message(chat_id=CHAT_ID, text=message)
+        else:
+            await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
+            
+async def find_mate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    keyboard = [
+        [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
+        [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
+        [InlineKeyboardButton("Support", callback_data="Support")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Choose lane:", reply_markup=reply_markup)
+    return 1
+
+async def select_lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    context.user_data['desired_lane'] = query.data
+
+    keyboard = [
+        [InlineKeyboardButton("Warrior", callback_data="Warrior"), InlineKeyboardButton("Elite", callback_data="Elite")],
+        [InlineKeyboardButton("Master", callback_data="Master"), InlineKeyboardButton("Grandmaster", callback_data="Grandmaster")],
+        [InlineKeyboardButton("Epic", callback_data="Epic"), InlineKeyboardButton("Legend", callback_data="Legend")],
+        [InlineKeyboardButton("Mythic", callback_data="Mythic")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.reply_text("Choose rank:", reply_markup=reply_markup)
+    return 2
+
+async def select_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    context.user_data['desired_rank'] = query.data
+
+    with sqlite3.connect('players.db') as conn:
+        c = conn.cursor()
+        c.execute('SELECT * FROM players WHERE lane = ? AND rank = ?', 
+                  (context.user_data['desired_lane'], context.user_data['desired_rank']))
+        players = c.fetchall()
+
+    if players:
+        message = "Players available for your criteria:\n\n"
+        for player in players:
+            _, username, nickname, lane, sublane, rank, _ = player
+            message += f"@{username} (Nickname: {nickname}, Lane: {lane}, Sublane: {sublane}, Rank: {rank})\n"
+
+        await query.message.reply_text(message)
+    else:
+        await query.message.reply_text("No players found for your criteria.")
+
+    return ConversationHandler.END
 
 def main() -> None:
     application = Application.builder().token(TOKEN).build()
@@ -307,6 +376,7 @@ def main() -> None:
     application.add_handler(CommandHandler("mute", mute_command, filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("unmute", unmute_comand, filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("my_id", get_my_id,  filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("team", find_team_handler,  filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
         entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
@@ -318,8 +388,18 @@ def main() -> None:
         },
         fallbacks=[]
     )
-
     application.add_handler(register_handler)
+    
+    find_mate_handler = ConversationHandler(
+        entry_points=[CommandHandler('mate', find_mate_handler, filters.ChatType.PRIVATE)],
+        states={
+            1: [CallbackQueryHandler(select_lane)],
+            2: [CallbackQueryHandler(select_rank)],
+        },
+        fallbacks=[]
+    )
+    application.add_handler(find_mate_handler)
+
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
