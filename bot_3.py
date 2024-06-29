@@ -1,3 +1,4 @@
+from contextlib import closing
 import os
 import logging
 import sqlite3
@@ -19,18 +20,17 @@ TOKEN = os.getenv('TG_BOT_TOKEN')
 CREATOR_ID = os.getenv('TG_CREATOR_ID')
 CHAT_ID = os.getenv('TG_CHAT_ID')
 
-conn = sqlite3.connect('players.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS players (
-    id INTEGER PRIMARY KEY,
-    username TEXT,
-    nickname TEXT,
-    lane TEXT,
-    sublane TEXT,
-    rank TEXT,
-    notifications INTEGER DEFAULT 1
-)''')
-conn.commit()
+with closing(sqlite3.connect('players.db')) as conn:
+    with conn:
+        conn.execute('''CREATE TABLE IF NOT EXISTS players (
+            id INTEGER PRIMARY KEY,
+            username TEXT,
+            nickname TEXT,
+            lane TEXT,
+            sublane TEXT,
+            rank TEXT,
+            notifications INTEGER DEFAULT 1
+        )''')
 
 LANE_REPLY_MARKUP = InlineKeyboardMarkup(
     [
@@ -197,7 +197,7 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = user.id
     username = user.username
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
         existing_user = c.fetchone()
@@ -224,7 +224,7 @@ async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user = update.effective_user
     user_id = user.id
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
         existing_user = c.fetchone()
@@ -239,7 +239,7 @@ async def me_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     user = update.effective_user
     user_id = user.id
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
         user_data = c.fetchone()
@@ -260,7 +260,7 @@ async def mute_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     user_id = user.id
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         
         c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
@@ -277,7 +277,7 @@ async def unmute_comand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user = update.effective_user
     user_id = user.id
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         
         c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
@@ -294,7 +294,7 @@ async def find_team_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user = update.effective_user
     user_id = user.id
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         
         c.execute('SELECT * FROM players WHERE id = ?', (user_id,))
@@ -327,7 +327,7 @@ async def select_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await query.answer()
     context.user_data['desired_rank'] = query.data
 
-    with sqlite3.connect('players.db') as conn:
+    with closing(sqlite3.connect('players.db')) as conn:
         c = conn.cursor()
         c.execute('SELECT * FROM players WHERE lane = ? AND rank = ?', 
                   (context.user_data['desired_lane'], context.user_data['desired_rank']))
