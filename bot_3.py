@@ -59,7 +59,7 @@ def creator_only(func):
         return await func(update, context, *args, **kwargs)
     return wrapped
 
-async def get_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def uid(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     await update.message.reply_text(f"Your Telegram ID is: {user_id}")
 
@@ -114,11 +114,11 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         logger.info("%s removed the bot from the channel %s", cause_name, chat.title)
         context.bot_data.setdefault("channel_ids", set()).discard(chat.id)
 
-async def chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def cid(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_chat.id
     await update.message.reply_text(f"Chat ID is {chat_id}")
     
-async def show_chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def chats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_ids = ", ".join(str(uid) for uid in context.bot_data.setdefault("user_ids", set()))
     group_ids = ", ".join(str(gid) for gid in context.bot_data.setdefault("group_ids", set()))
     channel_ids = ", ".join(str(cid) for cid in context.bot_data.setdefault("channel_ids", set()))
@@ -149,7 +149,7 @@ async def greet_chat_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
             parse_mode=ParseMode.HTML,
         )
     
-async def start_private_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_name = update.effective_user.full_name
     chat = update.effective_chat
     if chat.type != Chat.PRIVATE:
@@ -159,10 +159,10 @@ async def start_private_chat(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.bot_data.setdefault("user_ids", set()).add(chat.id)
     await update.message.reply_text(f"Welcome {user_name}. Use /help to see what I'm capable of.")
     
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Use /start to test this bot.")    
 
-async def register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def reg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Enter your nickname')
     return 1
 
@@ -220,7 +220,7 @@ async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     return ConversationHandler.END
 
-async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -235,7 +235,7 @@ async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         else:
             await update.message.reply_text("You are not registered in the database.")
             
-async def me_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def me(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -256,7 +256,7 @@ async def me_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
 
-async def mute_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -273,7 +273,7 @@ async def mute_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
 
-async def unmute_comand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -290,7 +290,7 @@ async def unmute_comand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
             
-async def find_team_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def team(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
 
@@ -311,7 +311,7 @@ async def find_team_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
             
-async def find_mate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def mate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Choose lane:", reply_markup=LANE_REPLY_MARKUP)
     return 1
 
@@ -350,20 +350,20 @@ def main() -> None:
 
     application.add_handler(ChatMemberHandler(greet_chat_members, ChatMemberHandler.CHAT_MEMBER))
     application.add_handler(ChatMemberHandler(track_chats, ChatMemberHandler.MY_CHAT_MEMBER))
-    application.add_handler(CommandHandler("show_chats", show_chats))
-    application.add_handler(CommandHandler("this_chat_id", chat_id))
-    application.add_handler(CommandHandler("start", start_private_chat, filters.ChatType.PRIVATE))
     
-    application.add_handler(CommandHandler("help", help_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("delete_me", delete_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("my_info", me_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("mute", mute_command, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("unmute", unmute_comand, filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("my_id", get_my_id,  filters.ChatType.PRIVATE))
-    application.add_handler(CommandHandler("team", find_team_handler,  filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("chats", chats))
+    application.add_handler(CommandHandler("cid", cid))
+    application.add_handler(CommandHandler("start", start, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("help", help, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("delete", delete, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("me", me, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("mute", mute, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("unmute", unmute, filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("uid", uid,  filters.ChatType.PRIVATE))
+    application.add_handler(CommandHandler("team", team,  filters.ChatType.PRIVATE))
     
     register_handler = ConversationHandler(
-        entry_points=[CommandHandler('register', register, filters.ChatType.PRIVATE)],
+        entry_points=[CommandHandler('reg', reg, filters.ChatType.PRIVATE)],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, nickname)],
             2: [CallbackQueryHandler(lane)],
@@ -375,7 +375,7 @@ def main() -> None:
     application.add_handler(register_handler)
     
     find_mate_handler = ConversationHandler(
-        entry_points=[CommandHandler('mate', find_mate, filters.ChatType.PRIVATE)],
+        entry_points=[CommandHandler('mate', mate, filters.ChatType.PRIVATE)],
         states={
             1: [CallbackQueryHandler(select_lane)],
             2: [CallbackQueryHandler(select_rank)],
