@@ -32,6 +32,23 @@ c.execute('''CREATE TABLE IF NOT EXISTS players (
 )''')
 conn.commit()
 
+LANE_REPLY_MARKUP = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
+        [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
+        [InlineKeyboardButton("Support", callback_data="Support")]   
+    ]
+)
+
+RANK_REPLY_MARKUP = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("Warrior", callback_data="Warrior"), InlineKeyboardButton("Elite", callback_data="Elite")],
+        [InlineKeyboardButton("Master", callback_data="Master"), InlineKeyboardButton("Grandmaster", callback_data="Grandmaster")],
+        [InlineKeyboardButton("Epic", callback_data="Epic"), InlineKeyboardButton("Legend", callback_data="Legend")],
+        [InlineKeyboardButton("Mythic", callback_data="Mythic")]   
+    ]
+)
+
 def creator_only(func):
     @wraps(func)
     async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
@@ -151,13 +168,7 @@ async def register(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def nickname(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['nickname'] = update.message.text
-    keyboard = [
-        [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
-        [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
-        [InlineKeyboardButton("Support", callback_data="Support")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Choose your lane:", reply_markup=reply_markup)
+    await update.message.reply_text("Choose your lane:", reply_markup=LANE_REPLY_MARKUP)
     return 2
 
 async def lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -165,13 +176,7 @@ async def lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await query.answer()
     context.user_data['lane'] = query.data
     await query.edit_message_text(text=f"Selected lane: {query.data}")
-    keyboard = [
-        [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
-        [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
-        [InlineKeyboardButton("Support", callback_data="Support")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.reply_text("Choose your sublane:", reply_markup=reply_markup)
+    await query.message.reply_text("Choose your sublane:", reply_markup=LANE_REPLY_MARKUP)
     return 3
 
 async def sublane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -179,14 +184,7 @@ async def sublane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await query.answer()
     context.user_data['sublane'] = query.data
     await query.edit_message_text(text=f"Selected sublane: {query.data}")
-    keyboard = [
-        [InlineKeyboardButton("Warrior", callback_data="Warrior"), InlineKeyboardButton("Elite", callback_data="Elite")],
-        [InlineKeyboardButton("Master", callback_data="Master"), InlineKeyboardButton("Grandmaster", callback_data="Grandmaster")],
-        [InlineKeyboardButton("Epic", callback_data="Epic"), InlineKeyboardButton("Legend", callback_data="Legend")],
-        [InlineKeyboardButton("Mythic", callback_data="Mythic")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.reply_text("Choose your rank:", reply_markup=reply_markup)
+    await query.message.reply_text("Choose your rank:", reply_markup=RANK_REPLY_MARKUP)
     return 4
 
 async def rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -313,29 +311,15 @@ async def find_team_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         else:
             await update.message.reply_text("You are not registered in the database. Use /register to create a profile.")
             
-async def find_mate_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    keyboard = [
-        [InlineKeyboardButton("Top", callback_data="Top"), InlineKeyboardButton("Jungle", callback_data="Jungle")],
-        [InlineKeyboardButton("Mid", callback_data="Mid"), InlineKeyboardButton("Bot", callback_data="Bot")],
-        [InlineKeyboardButton("Support", callback_data="Support")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Choose lane:", reply_markup=reply_markup)
+async def find_mate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text("Choose lane:", reply_markup=LANE_REPLY_MARKUP)
     return 1
 
 async def select_lane(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     context.user_data['desired_lane'] = query.data
-
-    keyboard = [
-        [InlineKeyboardButton("Warrior", callback_data="Warrior"), InlineKeyboardButton("Elite", callback_data="Elite")],
-        [InlineKeyboardButton("Master", callback_data="Master"), InlineKeyboardButton("Grandmaster", callback_data="Grandmaster")],
-        [InlineKeyboardButton("Epic", callback_data="Epic"), InlineKeyboardButton("Legend", callback_data="Legend")],
-        [InlineKeyboardButton("Mythic", callback_data="Mythic")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.reply_text("Choose rank:", reply_markup=reply_markup)
+    await query.message.reply_text("Choose rank:", reply_markup=RANK_REPLY_MARKUP)
     return 2
 
 async def select_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -391,7 +375,7 @@ def main() -> None:
     application.add_handler(register_handler)
     
     find_mate_handler = ConversationHandler(
-        entry_points=[CommandHandler('mate', find_mate_handler, filters.ChatType.PRIVATE)],
+        entry_points=[CommandHandler('mate', find_mate, filters.ChatType.PRIVATE)],
         states={
             1: [CallbackQueryHandler(select_lane)],
             2: [CallbackQueryHandler(select_rank)],
